@@ -22,19 +22,20 @@ window.addEventListener('resize', ()=>{
 
 
 const CONFIG = {
-    gravity: 3
+    gravity: 2.5
 };
-let isRendering = false, canFly = true, lastFlyTime=0;
+let isRendering = false, animateFrameId, canFly = true, lastFlyTime=0;
 const bird = new Bird({position: {
         x: canvasWidth/3,
         y: canvasHeight/2
     },
-    radius: 75
+    radius: 60
 });
 
 //user input
 const keys = {
-    ' ': false
+    ' ': false,
+    click: false
 };
 
 window.addEventListener('keydown', (event)=>{
@@ -54,6 +55,22 @@ window.addEventListener('keyup', (event)=>{
     if(event.key in keys){
         keys[event.key] = false;
     }
+});
+window.addEventListener('mousedown', (event)=>{
+    if (event.repeat){
+        return;
+    }
+    if(canFly){
+        keys.click = true;
+        canFly = false;
+        lastFlyTime = Date.now();
+        setTimeout(()=>{
+            keys.click = false;
+        }, 50);
+    }
+});
+window.addEventListener('mouseup', (event)=>{
+    keys.click = false;
 });
 
 //title screen ui
@@ -83,14 +100,22 @@ const titleScreen = ()=>{
 
 const startGame = ()=>{
     isRendering = true;
+    resetValues();
     hideTitleScreen();
     showGameUi();
     animate();
 };
 const stopGame = ()=>{
     isRendering = false;
+    cancelAnimationFrame(animateFrameId);
     hideGameUi();
     showTitleScreen();
+};
+const resetValues = ()=>{
+    bird.position = {
+        x: canvasWidth/3,
+        y: canvasHeight/2
+    };
 };
 
 //in-game ui
@@ -103,12 +128,12 @@ const animate = ()=>{
     if(!isRendering){
         return;
     }
-
-    requestAnimationFrame(animate);
+    
+    animateFrameId = requestAnimationFrame(animate);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
     const updateBird = ()=>{
-        if(keys[' ']){
+        if(keys[' '] || keys.click){
             bird.position.y -= bird.flyForce;
         }
         else{
@@ -147,8 +172,13 @@ const animate = ()=>{
         canFly = true;
     }
 
-    drawBird();
     updateBird();
+    drawBird();
+
+    if(bird.position.y + bird.radius >= canvasHeight || bird.position.y - bird.radius <= 0){
+        ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+        stopGame();
+    }
     console.log(keys);
 };
 
