@@ -15,9 +15,21 @@ let canvasHeight = canvas.height;
 window.addEventListener('resize', ()=>{
     canvas.width = window.innerWidth;
     canvas.height = window.innerHeight;
-
+    
     canvasWidth = canvas.width;
     canvasHeight = canvas.height;
+});
+
+
+const CONFIG = {
+    gravity: 3
+};
+let isRendering = false, canFly = true, lastFlyTime=0;
+const bird = new Bird({position: {
+        x: canvasWidth/3,
+        y: canvasHeight/2
+    },
+    radius: 75
 });
 
 //user input
@@ -26,8 +38,16 @@ const keys = {
 };
 
 window.addEventListener('keydown', (event)=>{
-    if(event.key in keys){
+    if(event.key in keys && canFly){
+        if (event.repeat){
+            return;
+        }
         keys[event.key] = true;
+        canFly = false;
+        lastFlyTime = Date.now();
+        setTimeout(()=>{
+            keys[event.key] = false;
+        }, 50);
     }
 });
 window.addEventListener('keyup', (event)=>{
@@ -52,24 +72,58 @@ const titleScreen = ()=>{
         }
         switch(event.target.id){
             case 'play':
-                hideTitleScreen();
-                gameUi();
-                animate();
+                startGame();
+                break;
             case 'settings':
                 //add settings later
-                return;
-            default:
-                return;
+                break;
         }
     });
 };
 
+const startGame = ()=>{
+    isRendering = true;
+    hideTitleScreen();
+    showGameUi();
+    animate();
+};
+const stopGame = ()=>{
+    isRendering = false;
+    hideGameUi();
+    showTitleScreen();
+};
+
 //in-game ui
-const gameUi = ()=>{};
+const showGameUi = ()=>{};
+const hideGameUi = ()=>{};
 
 //main game loop
 const animate = ()=>{
+
+    if(!isRendering){
+        return;
+    }
+
     requestAnimationFrame(animate);
+    ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+
+    const updateBird = ()=>{
+        if(keys[' ']){
+            bird.position.y -= bird.flyForce;
+        }
+        else{
+            bird.position.y += CONFIG.gravity;
+        }
+        
+        bird.position.y = Math.max(bird.radius, Math.min(bird.position.y, canvasHeight - bird.radius));
+    };
+    const drawBird = ()=>{
+        ctx.beginPath();
+        ctx.arc(bird.position.x, bird.position.y, bird.radius, 0, 2*Math.PI);
+        ctx.fillStyle = "red";
+        ctx.fill();
+        ctx.closePath();
+    };
 
     const drawGridLines = ()=>{
         ctx.beginPath();
@@ -89,6 +143,12 @@ const animate = ()=>{
     //for debug
     drawGridLines();
 
+    if((Date.now() - lastFlyTime) > 200){
+        canFly = true;
+    }
+
+    drawBird();
+    updateBird();
     console.log(keys);
 };
 
