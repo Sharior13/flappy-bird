@@ -7,4 +7,11 @@ class Bird{
     }
 }
 
-export { Bird };
+class Wall {
+    constructor({position, size}){
+        this.position = position;
+        this.size = size;
+        this.color = "green";
+    }
+}
+export { Bird, Wall };

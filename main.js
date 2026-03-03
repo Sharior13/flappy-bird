@@ -1,4 +1,4 @@
-import { Bird } from "./entities.js";
+import { Bird, Wall } from "./entities.js";
 
 const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext("2d");
@@ -20,16 +20,19 @@ window.addEventListener('resize', ()=>{
     canvasHeight = canvas.height;
 });
 
-
-const CONFIG = {
-    gravity: 2.5
+//game variables
+const GAME_CONFIG = {
+    gravity: 2.5,
+    wallSpeed: 20,
+    wallGap: 150
 };
-let isRendering = false, animateFrameId, canFly = true, lastFlyTime=0;
+let isRendering = false, animateFrameId, wallIntervalId, canFly = true, lastFlyTime = 0;
+let walls = [];
 const bird = new Bird({position: {
         x: canvasWidth/3,
         y: canvasHeight/2
     },
-    radius: 60
+    radius: 50
 });
 
 //user input
@@ -98,8 +101,10 @@ const titleScreen = ()=>{
     });
 };
 
+//helper functions
 const startGame = ()=>{
     isRendering = true;
+    wallIntervalId = setInterval(spawnWalls, 2000);
     resetValues();
     hideTitleScreen();
     showGameUi();
@@ -107,6 +112,7 @@ const startGame = ()=>{
 };
 const stopGame = ()=>{
     isRendering = false;
+    clearInterval(wallIntervalId);
     cancelAnimationFrame(animateFrameId);
     hideGameUi();
     showTitleScreen();
@@ -116,11 +122,34 @@ const resetValues = ()=>{
         x: canvasWidth/3,
         y: canvasHeight/2
     };
+    walls = [];
 };
 
 //in-game ui
 const showGameUi = ()=>{};
 const hideGameUi = ()=>{};
+
+//spawn walls
+const spawnWalls = ()=>{
+    walls.push(new Wall({position: {
+        x: canvasWidth + 50,
+        y: 0
+    },
+    size: {
+        width: 100,
+        height: 300
+    }
+    }));
+    walls.push(new Wall({position: {
+        x: canvasWidth + 50,
+        y: 300 + GAME_CONFIG.wallGap
+    },
+    size: {
+        width: 100,
+        height: 300
+    }
+    }));
+};
 
 //main game loop
 const animate = ()=>{
@@ -132,12 +161,13 @@ const animate = ()=>{
     animateFrameId = requestAnimationFrame(animate);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
+    //update and draw bird
     const updateBird = ()=>{
         if(keys[' '] || keys.click){
             bird.position.y -= bird.flyForce;
         }
         else{
-            bird.position.y += CONFIG.gravity;
+            bird.position.y += GAME_CONFIG.gravity;
         }
         
         bird.position.y = Math.max(bird.radius, Math.min(bird.position.y, canvasHeight - bird.radius));
@@ -145,11 +175,27 @@ const animate = ()=>{
     const drawBird = ()=>{
         ctx.beginPath();
         ctx.arc(bird.position.x, bird.position.y, bird.radius, 0, 2*Math.PI);
-        ctx.fillStyle = "red";
+        ctx.fillStyle = bird.color;
         ctx.fill();
         ctx.closePath();
     };
 
+    //update and draw walls
+    const updateWalls = ()=>{
+        for(let i=0; i<walls.length; i++){
+            walls[i].position.x--;
+        }
+    };
+    const drawWalls = ()=>{
+        for(let i=0; i<walls.length; i++){
+            ctx.beginPath();
+            ctx.fillStyle = walls[i].color;
+            ctx.fillRect(walls[i].position.x, walls[i].position.y, walls[i].size.width, walls[i].size.height);
+            ctx.closePath();
+        }
+    };
+
+    //for debug
     const drawGridLines = ()=>{
         ctx.beginPath();
         ctx.strokeStyle = "red";
@@ -165,21 +211,25 @@ const animate = ()=>{
         ctx.closePath();
     };
 
-    //for debug
     drawGridLines();
 
-    if((Date.now() - lastFlyTime) > 200){
-        canFly = true;
-    }
-
+    
+    updateWalls();
+    drawWalls();
+    
     updateBird();
     drawBird();
-
+    
+    //bird-border collision detection
     if(bird.position.y + bird.radius >= canvasHeight || bird.position.y - bird.radius <= 0){
         ctx.clearRect(0, 0, canvasWidth, canvasHeight);
         stopGame();
     }
-    console.log(keys);
+
+    //flying logic
+    if((Date.now() - lastFlyTime) > 200){
+        canFly = true;
+    }
 };
 
 titleScreen();
