@@ -22,11 +22,11 @@ window.addEventListener('resize', ()=>{
 
 //game variables
 const GAME_CONFIG = {
-    gravity: 2.5,
-    wallSpeed: 20,
-    wallGap: 150
+    gravity: 800,
+    wallSpeed: 200,
+    wallGap: 250
 };
-let isRendering = false, animateFrameId, wallIntervalId, canFly = true, lastFlyTime = 0;
+let isRendering = false, animateFrameId, wallIntervalId, canFly = true, lastFlyTime = 0, lastDeltaTime = null;
 let walls = [];
 const bird = new Bird({position: {
         x: canvasWidth/3,
@@ -35,46 +35,51 @@ const bird = new Bird({position: {
     radius: 50
 });
 
-//user input
+//user input handlers
 const keys = {
     ' ': false,
     click: false
 };
 
-window.addEventListener('keydown', (event)=>{
-    if(event.key in keys && canFly){
-        if (event.repeat){
+const handleKeyDown = (event)=>{
+    if (event.repeat){
             return;
         }
-        keys[event.key] = true;
+    if(canFly){
+        if(event.key in keys){
+            keys[event.key] = true;
+            setTimeout(()=>{
+                keys[event.key] = false;
+            }, 50);
+        }
+        else if(event.type  == "mousedown" || event.type == "touchstart"){
+            console.log(event);
+            keys.click = true;
+            setTimeout(()=>{
+                keys.click = false;
+            }, 50);
+        }
         canFly = false;
         lastFlyTime = Date.now();
-        setTimeout(()=>{
-            keys[event.key] = false;
-        }, 50);
     }
-});
-window.addEventListener('keyup', (event)=>{
+};
+
+const handleKeyUp = (event)=>{
     if(event.key in keys){
         keys[event.key] = false;
     }
-});
-window.addEventListener('mousedown', (event)=>{
-    if (event.repeat){
-        return;
+    else if(event.type  == "mouseup" || event.type == "touchend"){
+        keys.click = false;
     }
-    if(canFly){
-        keys.click = true;
-        canFly = false;
-        lastFlyTime = Date.now();
-        setTimeout(()=>{
-            keys.click = false;
-        }, 50);
-    }
-});
-window.addEventListener('mouseup', (event)=>{
-    keys.click = false;
-});
+};
+
+window.addEventListener('keydown', handleKeyDown);
+window.addEventListener('keyup', handleKeyUp);
+window.addEventListener('mousedown', handleKeyDown);
+window.addEventListener('mouseup', handleKeyUp);
+window.addEventListener('touchstart', handleKeyDown);
+window.addEventListener('touchend', handleKeyUp);
+
 
 //title screen ui
 const showTitleScreen = ()=>{
@@ -108,7 +113,7 @@ const startGame = ()=>{
     resetValues();
     hideTitleScreen();
     showGameUi();
-    animate();
+    requestAnimationFrame(animate);
 };
 const stopGame = ()=>{
     isRendering = false;
@@ -118,10 +123,12 @@ const stopGame = ()=>{
     showTitleScreen();
 };
 const resetValues = ()=>{
+    lastDeltaTime = null;
     bird.position = {
         x: canvasWidth/3,
         y: canvasHeight/2
     };
+    bird.velocity = 0;
     walls = [];
 };
 
@@ -152,24 +159,29 @@ const spawnWalls = ()=>{
 };
 
 //main game loop
-const animate = ()=>{
+const animate = (timestamp)=>{
 
     if(!isRendering){
         return;
     }
-    
+    if(lastDeltaTime == null){
+        lastDeltaTime = timestamp;
+    }
+    const deltaTime = Math.min((timestamp - lastDeltaTime) / 1000, 0.05);
+    lastDeltaTime = timestamp;
+
     animateFrameId = requestAnimationFrame(animate);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
 
     //update and draw bird
     const updateBird = ()=>{
+        bird.velocity += GAME_CONFIG.gravity * deltaTime;
+
         if(keys[' '] || keys.click){
-            bird.position.y -= bird.flyForce;
+            bird.velocity = bird.flyForce;
         }
-        else{
-            bird.position.y += GAME_CONFIG.gravity;
-        }
-        
+
+        bird.position.y += bird.velocity * deltaTime;
         bird.position.y = Math.max(bird.radius, Math.min(bird.position.y, canvasHeight - bird.radius));
     };
     const drawBird = ()=>{
@@ -183,7 +195,7 @@ const animate = ()=>{
     //update and draw walls
     const updateWalls = ()=>{
         for(let i=0; i<walls.length; i++){
-            walls[i].position.x--;
+            walls[i].position.x -= GAME_CONFIG.wallSpeed * deltaTime;
         }
     };
     const drawWalls = ()=>{

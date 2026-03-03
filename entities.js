@@ -3,7 +3,8 @@ class Bird{
         this.radius = radius;
         this.color = "red";
         this.position = position;
-        this.flyForce = 20;
+        this.flyForce = -350;
+        this.velocity = 0;
     }
 }
 
