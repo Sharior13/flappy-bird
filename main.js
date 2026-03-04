@@ -20,19 +20,28 @@ window.addEventListener('resize', ()=>{
     canvasHeight = canvas.height;
 });
 
+const isMobileDevice = ()=>{
+    return Math.min(window.screen.width, window.screen.height) < 768;
+};
+
 //game variables
 const GAME_CONFIG = {
+    birdRadius: isMobileDevice() ? 25 : 50,
+    flyBuffer: 200,
     gravity: 800,
+    wallWidth: isMobileDevice() ? 50 : 100,
     wallSpeed: 200,
-    wallGap: 250
+    wallGap: isMobileDevice() ? 125 : 250, //gap between upper and lower walls
+    wallDeleteBuffer: 50,
+    wallDelay: Math.floor(Math.random() * (6000 - 1500) + 1500) //change ts
 };
-let isRendering = false, animateFrameId, wallIntervalId, canFly = true, lastFlyTime = 0, lastDeltaTime = null;
+let isRendering = false, animateFrameId, wallIntervalId, canFly = true, lastFlyTime = 0, lastUpdateTime = null;
 let walls = [];
 const bird = new Bird({position: {
         x: canvasWidth/3,
         y: canvasHeight/2
     },
-    radius: 50
+    radius: GAME_CONFIG.birdRadius
 });
 
 //user input handlers
@@ -53,7 +62,6 @@ const handleKeyDown = (event)=>{
             }, 50);
         }
         else if(event.type  == "mousedown" || event.type == "touchstart"){
-            console.log(event);
             keys.click = true;
             setTimeout(()=>{
                 keys.click = false;
@@ -109,7 +117,7 @@ const titleScreen = ()=>{
 //helper functions
 const startGame = ()=>{
     isRendering = true;
-    wallIntervalId = setInterval(spawnWalls, 2000);
+    wallIntervalId = setInterval(spawnWalls, GAME_CONFIG.wallDelay);
     resetValues();
     hideTitleScreen();
     showGameUi();
@@ -123,7 +131,7 @@ const stopGame = ()=>{
     showTitleScreen();
 };
 const resetValues = ()=>{
-    lastDeltaTime = null;
+    lastUpdateTime = null;
     bird.position = {
         x: canvasWidth/3,
         y: canvasHeight/2
@@ -138,22 +146,23 @@ const hideGameUi = ()=>{};
 
 //spawn walls
 const spawnWalls = ()=>{
+    let wallHeight = Math.floor(Math.random() * ((canvasHeight - GAME_CONFIG.wallGap) - 0) + 0);
     walls.push(new Wall({position: {
-        x: canvasWidth + 50,
+        x: canvasWidth,
         y: 0
     },
     size: {
-        width: 100,
-        height: 300
+        width: GAME_CONFIG.wallWidth,
+        height: wallHeight
     }
     }));
     walls.push(new Wall({position: {
-        x: canvasWidth + 50,
-        y: 300 + GAME_CONFIG.wallGap
+        x: canvasWidth,
+        y: wallHeight + GAME_CONFIG.wallGap
     },
     size: {
-        width: 100,
-        height: 300
+        width: GAME_CONFIG.wallWidth,
+        height: canvasHeight - (wallHeight - GAME_CONFIG.wallGap)
     }
     }));
 };
@@ -164,11 +173,11 @@ const animate = (timestamp)=>{
     if(!isRendering){
         return;
     }
-    if(lastDeltaTime == null){
-        lastDeltaTime = timestamp;
+    if(lastUpdateTime == null){
+        lastUpdateTime = timestamp;
     }
-    const deltaTime = Math.min((timestamp - lastDeltaTime) / 1000, 0.05);
-    lastDeltaTime = timestamp;
+    const deltaTime = Math.min((timestamp - lastUpdateTime) / 1000, 0.05);
+    lastUpdateTime = timestamp;
 
     animateFrameId = requestAnimationFrame(animate);
     ctx.clearRect(0, 0, canvasWidth, canvasHeight);
@@ -196,6 +205,12 @@ const animate = (timestamp)=>{
     const updateWalls = ()=>{
         for(let i=0; i<walls.length; i++){
             walls[i].position.x -= GAME_CONFIG.wallSpeed * deltaTime;
+
+            //optimize walls
+            if(walls[i].right + GAME_CONFIG.wallDeleteBuffer <= 0){
+                walls.splice(i, 1);
+                i--;
+            }
         }
     };
     const drawWalls = ()=>{
@@ -239,7 +254,7 @@ const animate = (timestamp)=>{
     }
 
     //flying logic
-    if((Date.now() - lastFlyTime) > 200){
+    if((Date.now() - lastFlyTime) > GAME_CONFIG.flyBuffer){
         canFly = true;
     }
 };
