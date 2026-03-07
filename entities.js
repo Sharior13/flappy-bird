@@ -5,6 +5,7 @@ class Bird{
         this.position = position;
         this.flyForce = -350;
         this.velocity = 0;
+        this.score = 0;
     }
 }
 
@@ -13,12 +14,13 @@ class Wall {
         this.position = position;
         this.size = size;
         this.color = "green";
+        this.hasPassed = false;
     }
     get left (){
         return this.position.x;
     }
     get right (){
-        return this.position.x + this.size.Width;
+        return this.position.x + this.size.width;
     }
     get top (){
         return this.position.y;
