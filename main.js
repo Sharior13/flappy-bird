@@ -132,6 +132,7 @@ const resetValues = ()=>{
     lastUpdateTime = 0;
     wallTimer = 0;
     nextWallDelay = 0;
+    lastFlyTime = 0;
     bird.position = {
         x: canvasWidth/3,
         y: canvasHeight/2
@@ -170,6 +171,20 @@ const spawnWalls = ()=>{
         height: canvasHeight - (wallHeight + GAME_CONFIG.wallGap)
     }
     }));
+};
+
+//check for collision
+const isBirdWallColliding = (bird, wall)=>{
+  const closestX = Math.max(wall.position.x, Math.min(bird.position.x, wall.position.x + wall.size.width));
+  const closestY = Math.max(wall.position.y, Math.min(bird.position.y, wall.position.y + wall.size.height));
+
+  const distanceX = bird.position.x - closestX;
+  const distanceY = bird.position.y - closestY;
+
+  const distanceSquared = (distanceX * distanceX) + (distanceY * distanceY);
+  const radiusSquared = bird.radius * bird.radius;
+
+  return distanceSquared < radiusSquared;
 };
 
 //main game loop
@@ -215,6 +230,12 @@ const animate = (timestamp)=>{
             if(walls[i].right + GAME_CONFIG.wallDeleteBuffer <= 0){
                 walls.splice(i, 1);
                 i--;
+            }
+
+            //bird-wall collision
+            if(isBirdWallColliding(bird, walls[i])){
+                ctx.clearRect(0, 0, canvasWidth, canvasHeight);
+                stopGame();
             }
         }
     };
