@@ -27,15 +27,15 @@ const isMobileDevice = ()=>{
 //game variables
 const GAME_CONFIG = {
     birdRadius: isMobileDevice() ? 25 : 50,
-    flyBuffer: 200,
+    flyBuffer: 0.2,
     gravity: 800,
     wallWidth: isMobileDevice() ? 50 : 100,
-    wallSpeed: 200,
+    wallSpeed: isMobileDevice() ? 100 : 200,
     wallGap: isMobileDevice() ? 125 : 250, //gap between upper and lower walls
     wallDeleteBuffer: 50,
-    wallDelay: Math.floor(Math.random() * (6000 - 1500) + 1500) //change ts
+    wallDelay: [1.5, 4.0] //min/max wall delay value
 };
-let isRendering = false, animateFrameId, wallIntervalId, canFly = true, lastFlyTime = 0, lastUpdateTime = null;
+let isRendering = false, animateFrameId, canFly = true, lastFlyTime = 0, lastUpdateTime = 0, wallTimer = 0, nextWallDelay = 0;
 let walls = [];
 const bird = new Bird({position: {
         x: canvasWidth/3,
@@ -68,7 +68,7 @@ const handleKeyDown = (event)=>{
             }, 50);
         }
         canFly = false;
-        lastFlyTime = Date.now();
+        lastFlyTime = lastUpdateTime/1000;
     }
 };
 
@@ -117,7 +117,6 @@ const titleScreen = ()=>{
 //helper functions
 const startGame = ()=>{
     isRendering = true;
-    wallIntervalId = setInterval(spawnWalls, GAME_CONFIG.wallDelay);
     resetValues();
     hideTitleScreen();
     showGameUi();
@@ -125,19 +124,25 @@ const startGame = ()=>{
 };
 const stopGame = ()=>{
     isRendering = false;
-    clearInterval(wallIntervalId);
     cancelAnimationFrame(animateFrameId);
     hideGameUi();
     showTitleScreen();
 };
 const resetValues = ()=>{
-    lastUpdateTime = null;
+    lastUpdateTime = 0;
+    wallTimer = 0;
+    nextWallDelay = 0;
     bird.position = {
         x: canvasWidth/3,
         y: canvasHeight/2
     };
     bird.velocity = 0;
     walls = [];
+};
+const getRandomDelay = ()=>{
+    return Math.random() * 
+        (GAME_CONFIG.wallDelay[1] - GAME_CONFIG.wallDelay[0]) 
+        + GAME_CONFIG.wallDelay[0];
 };
 
 //in-game ui
@@ -162,7 +167,7 @@ const spawnWalls = ()=>{
     },
     size: {
         width: GAME_CONFIG.wallWidth,
-        height: canvasHeight - (wallHeight - GAME_CONFIG.wallGap)
+        height: canvasHeight - (wallHeight + GAME_CONFIG.wallGap)
     }
     }));
 };
@@ -173,7 +178,7 @@ const animate = (timestamp)=>{
     if(!isRendering){
         return;
     }
-    if(lastUpdateTime == null){
+    if(lastUpdateTime == 0){
         lastUpdateTime = timestamp;
     }
     const deltaTime = Math.min((timestamp - lastUpdateTime) / 1000, 0.05);
@@ -253,8 +258,16 @@ const animate = (timestamp)=>{
         stopGame();
     }
 
+    //wall spawn time logic
+    wallTimer += deltaTime;
+    if(wallTimer > nextWallDelay){
+        spawnWalls();
+        wallTimer = 0;
+        nextWallDelay = getRandomDelay();
+    }
+
     //flying logic
-    if((Date.now() - lastFlyTime) > GAME_CONFIG.flyBuffer){
+    if((lastUpdateTime/1000) - lastFlyTime > GAME_CONFIG.flyBuffer){
         canFly = true;
     }
 };
