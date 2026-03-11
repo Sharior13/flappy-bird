@@ -4,6 +4,9 @@ const canvas = document.getElementById('canvas');
 const ctx = canvas.getContext("2d");
 
 const titleScreenContainer = document.getElementById('title-screen');
+const gameUiContainer = document.getElementById('game-ui');
+const currentScoreContainer = document.getElementById('current-score');
+const highScoreContainer = document.getElementById('high-score');
 
 //resize canvas acc to user viewport
 canvas.width = window.innerWidth;
@@ -27,26 +30,30 @@ const isMobileDevice = ()=>{
 //game variables
 const GAME_CONFIG = {
     birdRadius: isMobileDevice() ? 25 : 50,
-    flyBuffer: 0.2,
-    gravity: 800,
-    wallWidth: isMobileDevice() ? 50 : 100,
-    wallGap: isMobileDevice() ? 125 : 250, //gap between upper and lower walls
+    flyBuffer: isMobileDevice() ? 0.15 : 0.2,
+    gravity: isMobileDevice() ? 600 : 800,
+    wallWidth: isMobileDevice() ? 60 : 100,
+    wallGap: isMobileDevice() ? 210 : 250, //gap between upper and lower walls
     wallDeleteBuffer: 50,
 };
-
-let wall_config = {
-    speed: isMobileDevice() ? 100 : 200,
-    delay: [1.5, 4.0], //min/max wall delay value
+const startingPosition = {
+    x: canvasWidth/6,
+    y: canvasHeight/2
+};
+const originalWallConfig = {
+    speed: isMobileDevice() ? 80 : 200,
+    delay: [isMobileDevice() ? 2.2 : 1.5, isMobileDevice() ? 5.5 : 4.0], //min/max wall delay value
     timer: 0,
     nextDelay: 0
+
 };
-let isRendering = false, animateFrameId, canFly = true, lastFlyTime = 0, lastUpdateTime = 0;
+
+let wall_config = originalWallConfig;
+let isRendering = false, animateFrameId, canFly = true, lastFlyTime = 0, lastUpdateTime = 0, highScore = 0;
 let walls = [];
-const bird = new Bird({position: {
-        x: canvasWidth/3,
-        y: canvasHeight/2
-    },
-    radius: GAME_CONFIG.birdRadius
+const bird = new Bird({position: startingPosition,
+    radius: GAME_CONFIG.birdRadius,
+    flyForce: isMobileDevice()? -320 :-350
 });
 
 //user input handlers
@@ -58,7 +65,7 @@ const keys = {
 const handleKeyDown = (event)=>{
     if (event.repeat){
             return;
-        }
+    }
     if(canFly){
         if(event.key in keys){
             keys[event.key] = true;
@@ -119,6 +126,7 @@ titleScreenContainer.addEventListener('click', (event)=>{
 //helper functions
 const startGame = ()=>{
     isRendering = true;
+    highScore = getHighScore() || 0;
     resetValues();
     hideTitleScreen();
     showGameUi();
@@ -134,29 +142,39 @@ const stopGame = ()=>{
 const resetValues = ()=>{
     lastUpdateTime = 0;
     lastFlyTime = 0;
-    bird.position = {
-        x: canvasWidth/3,
-        y: canvasHeight/2
-    };
+    bird.position = startingPosition;
     bird.velocity = 0;
     bird.score = 0;
+    currentScoreContainer.innerHTML = `Score: ${bird.score}`;
+    highScoreContainer.innerHTML = `High Score: ${highScore}`;
     walls = [];
-    wall_config = {
-        speed: isMobileDevice() ? 100 : 200,
-        delay: [1.5, 4.0],
-        timer: 0,
-        nextDelay: 0
-    };
+    wall_config = originalWallConfig;
 };
 const getRandomDelay = ()=>{
-    return Math.random() * 
-        (wall_config.delay[1] - wall_config.delay[0]) 
-        + wall_config.delay[0];
+    return Math.random() * (wall_config.delay[1] - wall_config.delay[0]) + wall_config.delay[0];
+};
+const getHighScore = ()=>{
+    return localStorage.getItem('highScore');
+};
+const setHighScore = (score)=>{
+    localStorage.setItem('highScore', score);
 };
 
 //in-game ui
-const showGameUi = ()=>{};
-const hideGameUi = ()=>{};
+const showGameUi = ()=>{
+    gameUiContainer.classList.remove('hidden');
+};
+const hideGameUi = ()=>{
+    gameUiContainer.classList.add('hidden');
+};
+const updateUi = ()=>{
+    currentScoreContainer.innerHTML = `Score: ${bird.score}`;
+    if(bird.score > highScore){
+        setHighScore(bird.score);
+    }
+    highScore = getHighScore();
+    highScoreContainer.innerHTML = `High Score: ${highScore}`;
+};
 
 
 //check for collision
@@ -229,10 +247,13 @@ const updateWalls = (deltaTime)=>{
         //scoring logic
         if(bird.position.x - bird.radius > walls[i].right && !walls[i].hasPassed){
             bird.score++;
+            updateUi();
             walls[i].hasPassed = true;
             walls[i+1].hasPassed = true;
-            wall_config.speed = Math.min(wall_config.speed + bird.score*2, isMobileDevice() ? 500 : 700);
-            wall_config.delay = [1.5, Math.max(4.0-bird.score/10, 2.0)];
+            wall_config.speed = Math.min(wall_config.speed + bird.score * 2, isMobileDevice() ? 450 : 800);
+            const minDelay = isMobileDevice() ? 2.2 : 1.5;
+            const maxDelay = isMobileDevice() ? 5.5 : 4.0;
+            wall_config.delay = [minDelay, Math.max(maxDelay - bird.score / 10, minDelay)];
         }
     }
 };

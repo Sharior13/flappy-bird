@@ -1,9 +1,9 @@
 class Bird{
-    constructor({position, radius}){
+    constructor({position, radius, flyForce}){
         this.radius = radius;
         this.color = "red";
         this.position = position;
-        this.flyForce = -350;
+        this.flyForce = flyForce;
         this.velocity = 0;
         this.score = 0;
     }
