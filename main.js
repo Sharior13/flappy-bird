@@ -33,14 +33,14 @@ const GAME_CONFIG = {
     flyBuffer: isMobileDevice() ? 0.15 : 0.2,
     gravity: isMobileDevice() ? 600 : 800,
     wallWidth: isMobileDevice() ? 60 : 100,
-    wallGap: isMobileDevice() ? 210 : 250, //gap between upper and lower walls
+    wallGap: isMobileDevice() ? 190 : 230, //gap between upper and lower walls
     wallDeleteBuffer: 50,
 };
-const startingPosition = {
+const ORIGINAL_BIRD_POSITION = {
     x: canvasWidth/6,
     y: canvasHeight/2
 };
-const originalWallConfig = {
+const ORIGINAL_WALL_CONFIG = {
     speed: isMobileDevice() ? 80 : 200,
     delay: [isMobileDevice() ? 2.2 : 1.5, isMobileDevice() ? 5.5 : 4.0], //min/max wall delay value
     timer: 0,
@@ -48,10 +48,10 @@ const originalWallConfig = {
 
 };
 
-let wall_config = originalWallConfig;
+let wall_config = ORIGINAL_WALL_CONFIG;
 let isRendering = false, animateFrameId, canFly = true, lastFlyTime = 0, lastUpdateTime = 0, highScore = 0;
 let walls = [];
-const bird = new Bird({position: startingPosition,
+const bird = new Bird({position: ORIGINAL_BIRD_POSITION,
     radius: GAME_CONFIG.birdRadius,
     flyForce: isMobileDevice()? -320 :-350
 });
@@ -142,13 +142,13 @@ const stopGame = ()=>{
 const resetValues = ()=>{
     lastUpdateTime = 0;
     lastFlyTime = 0;
-    bird.position = startingPosition;
+    bird.position = ORIGINAL_BIRD_POSITION;
     bird.velocity = 0;
     bird.score = 0;
     currentScoreContainer.innerHTML = `Score: ${bird.score}`;
     highScoreContainer.innerHTML = `High Score: ${highScore}`;
     walls = [];
-    wall_config = originalWallConfig;
+    wall_config = ORIGINAL_WALL_CONFIG;
 };
 const getRandomDelay = ()=>{
     return Math.random() * (wall_config.delay[1] - wall_config.delay[0]) + wall_config.delay[0];
@@ -250,7 +250,7 @@ const updateWalls = (deltaTime)=>{
             updateUi();
             walls[i].hasPassed = true;
             walls[i+1].hasPassed = true;
-            wall_config.speed = Math.min(wall_config.speed + bird.score * 2, isMobileDevice() ? 450 : 800);
+            wall_config.speed = Math.min(wall_config.speed + (isMobileDevice() ? bird.score * 1 : bird.score * 2), isMobileDevice() ? 450 : 800);
             const minDelay = isMobileDevice() ? 2.2 : 1.5;
             const maxDelay = isMobileDevice() ? 5.5 : 4.0;
             wall_config.delay = [minDelay, Math.max(maxDelay - bird.score / 10, minDelay)];
