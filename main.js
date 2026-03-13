@@ -8,32 +8,31 @@ const gameUiContainer = document.getElementById('game-ui');
 const currentScoreContainer = document.getElementById('current-score');
 const highScoreContainer = document.getElementById('high-score');
 
+const CANVAS_WIDTH = 430; // fixed phone-sized width
+
 //resize canvas acc to user viewport
-canvas.width = window.innerWidth;
+canvas.width = CANVAS_WIDTH;
 canvas.height = window.innerHeight;
 
 let canvasWidth = canvas.width; 
 let canvasHeight = canvas.height;
 
 window.addEventListener('resize', ()=>{
-    canvas.width = window.innerWidth;
+    canvas.width = CANVAS_WIDTH;
     canvas.height = window.innerHeight;
     
     canvasWidth = canvas.width;
     canvasHeight = canvas.height;
 });
 
-const isMobileDevice = ()=>{
-    return Math.min(window.screen.width, window.screen.height) < 768;
-};
 
 //game variables
 const GAME_CONFIG = {
-    birdRadius: isMobileDevice() ? 25 : 50,
-    flyBuffer: isMobileDevice() ? 0.15 : 0.2,
-    gravity: isMobileDevice() ? 600 : 800,
-    wallWidth: isMobileDevice() ? 60 : 100,
-    wallGap: isMobileDevice() ? 190 : 230, //gap between upper and lower walls
+    birdRadius: 25,
+    flyBuffer: 0.15,
+    gravity: 600,
+    wallWidth: 60,
+    wallGap: 190,
     wallDeleteBuffer: 50,
 };
 const ORIGINAL_BIRD_POSITION = {
@@ -41,11 +40,10 @@ const ORIGINAL_BIRD_POSITION = {
     y: canvasHeight/2
 };
 const ORIGINAL_WALL_CONFIG = {
-    speed: isMobileDevice() ? 80 : 200,
-    delay: [isMobileDevice() ? 2.2 : 1.5, isMobileDevice() ? 5.5 : 4.0], //min/max wall delay value
+    speed: 80,
+    delay: [2.2, 5.5],
     timer: 0,
     nextDelay: 0
-
 };
 
 let wall_config = ORIGINAL_WALL_CONFIG;
@@ -53,7 +51,7 @@ let isRendering = false, animateFrameId, canFly = true, lastFlyTime = 0, lastUpd
 let walls = [];
 const bird = new Bird({position: ORIGINAL_BIRD_POSITION,
     radius: GAME_CONFIG.birdRadius,
-    flyForce: isMobileDevice()? -320 :-350
+    flyForce: -320
 });
 
 //user input handlers
@@ -250,9 +248,9 @@ const updateWalls = (deltaTime)=>{
             updateUi();
             walls[i].hasPassed = true;
             walls[i+1].hasPassed = true;
-            wall_config.speed = Math.min(wall_config.speed + (isMobileDevice() ? bird.score * 1 : bird.score * 2), isMobileDevice() ? 450 : 800);
-            const minDelay = isMobileDevice() ? 2.2 : 1.5;
-            const maxDelay = isMobileDevice() ? 5.5 : 4.0;
+            wall_config.speed = Math.min(wall_config.speed + bird.score * 1, 450);
+            const minDelay = 2.2;
+            const maxDelay = 5.5;
             wall_config.delay = [minDelay, Math.max(maxDelay - bird.score / 10, minDelay)];
         }
     }
