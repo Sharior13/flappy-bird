@@ -8,22 +8,24 @@ const gameUiContainer = document.getElementById('game-ui');
 const currentScoreContainer = document.getElementById('current-score');
 const highScoreContainer = document.getElementById('high-score');
 
-const CANVAS_WIDTH = 430; // fixed phone-sized width
+const CANVAS_WIDTH = 320;
+const CANVAS_HEIGHT = 568;
 
-//resize canvas acc to user viewport
 canvas.width = CANVAS_WIDTH;
-canvas.height = window.innerHeight;
+canvas.height = CANVAS_HEIGHT;
 
-let canvasWidth = canvas.width; 
-let canvasHeight = canvas.height;
+let canvasWidth = CANVAS_WIDTH;
+let canvasHeight = CANVAS_HEIGHT;
 
-window.addEventListener('resize', ()=>{
-    canvas.width = CANVAS_WIDTH;
-    canvas.height = window.innerHeight;
-    
-    canvasWidth = canvas.width;
-    canvasHeight = canvas.height;
-});
+const scaleCanvas = () => {
+    const scaleX = window.innerWidth / CANVAS_WIDTH;
+    const scaleY = window.innerHeight / CANVAS_HEIGHT;
+    const scale = Math.min(scaleX, scaleY); // fit inside screen and keep aspect ratio
+    canvas.style.transform = `translate(-50%, -50%) scale(${scale})`;
+};
+
+scaleCanvas();
+window.addEventListener('resize', scaleCanvas);
 
 
 //game variables
